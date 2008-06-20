@@ -5,9 +5,11 @@ use Moose;
 
 use XML::LibXSLT::Easy;
 
-with qw(MooseX::Getopt);
-
 use MooseX::Types::Path::Class;
+
+use namespace::clean -except => [qw(meta)];
+
+with qw(MooseX::Getopt);
 
 has [qw(xml xsl out)] => (
     isa => "Path::Class::File",
@@ -24,6 +26,7 @@ has out => (
 );
 
 has proc => (
+    traits => [qw(NoGetopt)],
     isa => "XML::LibXSLT::Easy",
     is  => "rw",
     lazy_build => 1,
