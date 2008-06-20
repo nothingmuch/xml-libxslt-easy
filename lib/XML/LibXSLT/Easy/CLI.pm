@@ -20,6 +20,7 @@ has [qw(xml xsl out)] => (
 has out => (
     isa => "Path::Class::File",
     is  => "rw",
+    coerce => 1,
 );
 
 has proc => (
