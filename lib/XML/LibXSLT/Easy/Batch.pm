@@ -56,6 +56,9 @@ sub process_glob {
     ( $out_glob = $xml_glob ) =~ s/xml$/html/ unless $out_glob;
     ( $xsl_glob = $xml_glob ) =~ s/xml$/xsl/  unless $xsl_glob;
 
+    croak "output cannot be the same as input" unless $out_glob ne $xml_glob;
+    croak "xsl cannot be the same as input"    unless $xsl_glob ne $xml_glob;
+
     # from Locale::Maketext:Lexicon
     my $pattern = quotemeta($xml_glob);
     $pattern =~ s/\\\*(?=[^*]+$)/\([-\\w]+\)/g or croak "bad glob: $xml_glob";
