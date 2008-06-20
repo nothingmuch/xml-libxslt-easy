@@ -55,11 +55,11 @@ has xslt_options => (
 sub process {
     my ( $self, %args ) = @_;
 
-    my $doc = $self->parse($args{input});
+    my $doc = $self->parse($args{xml});
 
     my $stylesheet = $self->parse_stylesheet( $self->parse($args{xsl}) ); # FIXME get ?xml-stylesheet from $doc
 
-    $self->output( $args{output}, $stylesheet, $stylesheet->transform($doc) );
+    $self->output( $args{out}, $stylesheet, $stylesheet->transform($doc) );
 }
 
 sub _build_xslt {

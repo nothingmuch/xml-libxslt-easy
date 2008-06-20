@@ -38,9 +38,9 @@ sub run {
     $self = $self->new_with_options unless ref $self;
 
     $self->proc->process(
-        input   => $self->xml,
-        xsl     => $self->xsl,
-        output => ( $self->out || \*STDOUT ),
+        xml => $self->xml,
+        xsl => $self->xsl,
+        out => ( $self->out || \*STDOUT ),
     );
 }
 

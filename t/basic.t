@@ -22,7 +22,7 @@ isa_ok( $t->xml, "XML::LibXML" );
 
 isa_ok( $t->xslt, "XML::LibXSLT" );
 
-my $xml = $t->process( input => $xmldir->file("foo.xml"), xsl => $xmldir->file("foo.xsl") );
+my $xml = $t->process( xml => $xmldir->file("foo.xml"), xsl => $xmldir->file("foo.xsl") );
 
 ok($xml, "got some xml");
 
