@@ -43,11 +43,11 @@ sub process_entry {
     if ( -f $args{xml} and -f $args{xsl} ) {
         $self->process_file(%args);
     } elsif ( $args{xml} =~ /\*/ ) {
-        $self->process_glob(%args);
+        $self->process_file(%$_) for $self->expand(%args);
     }
 }
 
-sub process_glob {
+sub expand {
     my ( $self, %args ) = @_;
 
     my ( $xml_glob, $xsl_glob, $out_glob ) = @args{qw(xml xsl out)};
@@ -77,8 +77,10 @@ sub process_glob {
 
         s/\*/$basename/e for $xsl, $out;
 
-        $self->process_file( xml => $xml, xsl => $xsl, out => $out );
+        push @ret, { xml => $xml, xsl => $xsl, out => $out };
     }
+
+    return @ret;
 }
 
 __PACKAGE__
