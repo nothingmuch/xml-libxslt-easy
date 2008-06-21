@@ -107,11 +107,18 @@ __END__
 
 =head1 NAME
 
-XML:::LibXSLT::Easy - 
+XML:::LibXSLT::Easy - DWIM XSLT processing with L<XML::LibXSLT>
 
 =head1 SYNOPSIS
 
 	use XML:::LibXSLT::Easy;
+
+    my $p = XML:::LibXSLT::Easy->new;
+
+    my $output = $p->process( xml => "foo.xml", xsl => "foo.xsl" );
+
+    # takes various types of arguments
+    $p->process( xml => $doc, xsl => $filehandle, out => $filename );
 
 =head1 DESCRIPTION
 
