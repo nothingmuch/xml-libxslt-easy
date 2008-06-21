@@ -21,6 +21,8 @@ WriteMakefile(
         'MooseX::Types::Path::Class' => 0,
         'Path::Class' => 0,
         'MooseX::Types::Moose' => 0,
+        'MooseX::Types::URI' => 0,
+        'Devel::PartialDump' => 0,
     },
 );
 
