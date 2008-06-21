@@ -11,6 +11,7 @@ use XML::LibXSLT;
 use MooseX::Types::VariantTable::Declare;
 use MooseX::Types::Moose qw(Str FileHandle Item Undef);
 use MooseX::Types::Path::Class qw(File);
+use Moose::Util::TypeConstraints;
 
 use namespace::clean -except => [qw(meta)];
 
@@ -57,7 +58,7 @@ sub process {
 
     my $doc = $self->parse($args{xml});
 
-    my $stylesheet = $self->parse_stylesheet( $self->parse($args{xsl}) ); # FIXME get ?xml-stylesheet from $doc
+    my $stylesheet = $self->stylesheet( $args{xsl} );
 
     $self->output( $args{out}, $stylesheet, $stylesheet->transform($doc) );
 }
@@ -67,6 +68,17 @@ sub _build_xslt {
     XML::LibXSLT->new( %{ $self->xslt_options } );
 }
 
+class_type "XML::LibXSLT::StylesheetWrapper";
+class_type "XML::LibXML::Document";
+
+variant_method stylesheet => "XML::LibXSLT::StylesheetWrapper" => sub { $_[1] };
+variant_method stylesheet => "XML::LibXML::Document" => "parse_stylesheet";
+variant_method stylesheet => "Item" => sub {
+    my ( $self, $thing ) = @_;
+    $self->stylesheet( $self->parse($thing) );
+};
+
+variant_method parse => "XML::LibXML::Document" => sub { $_[1] };
 variant_method parse => FileHandle() => "parse_fh";
 variant_method parse => File() => "parse_file";
 variant_method parse => Str() => sub {
