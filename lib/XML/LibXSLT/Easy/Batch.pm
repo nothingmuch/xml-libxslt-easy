@@ -61,13 +61,15 @@ sub expand {
     # from Locale::Maketext:Lexicon
     my $pattern = quotemeta($xml_glob);
     $pattern =~ s/\\\*(?=[^*]+$)/\([-\\w]+\)/g or croak "bad glob: $xml_glob";
-    $pattern =~ s/\\\*/.*?/g;
-    $pattern =~ s/\\\?/./g;
-    $pattern =~ s/\\\[/[/g;
-    $pattern =~ s/\\\]/]/g;
-    $pattern =~ s[\\\{(.*?)\\\\}][
-        '(?:'.join('|', split(/,/, $1)).')'
-    ]eg;
+
+    # convert glob to regex
+    $pattern =~ s/\\\*/.*?/g; # foo*bar
+    $pattern =~ s/\\\?/./g;   # foo?bar
+    $pattern =~ s/\\\[/[/g;   # [a-z]
+    $pattern =~ s/\\\]/]/g;   # [a-z]
+    $pattern =~ s[\\\{(.*?)\\\\}][ '(?:' . join('|', split(/,/, $1)). ')' ]eg; # {foo,bar}
+
+    my @ret;
 
     foreach my $xml ( File::Glob::bsd_glob($xml_glob) ) {
         $xml =~ /$pattern/ or next;
