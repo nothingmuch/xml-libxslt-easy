@@ -27,13 +27,12 @@ sub _build_proc {
 has files => (
     isa => "ArrayRef[HashRef[Str|Path::Class::File]]",
     is  => "ro",
-    required => 1,
 );
 
 sub process {
     my ( $self, @files ) = @_;
 
-    foreach my $entry ( @{ $self->files } ) {
+    foreach my $entry ( @files ? @files : @{ $self->files || croak "No files to process" } ) {
         $self->process_entry(%$entry);
     }
 }
