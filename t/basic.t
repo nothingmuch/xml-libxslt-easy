@@ -5,6 +5,7 @@ use warnings;
 
 use Test::More 'no_plan';
 use Test::XML;
+use Test::Exception;
 
 use Path::Class;
 use URI;
@@ -14,7 +15,9 @@ use ok 'XML::LibXSLT::Easy';
 use ok 'XML::LibXSLT::Easy::Batch';
 
 my $xmldir = file(__FILE__)->parent->subdir("xml");
-
+my $xmlfile = $xmldir->file("foo.xml");
+my $xslfile = $xmldir->file("foo.xsl");
+my $outfile = $xmldir->file("foo.html");
 
 my $t = XML::LibXSLT::Easy->new;
 
@@ -33,7 +36,7 @@ my $exp_xml = <<XML;
 XML
 
 {
-    my $xml = $t->process( xml => $xmldir->file("foo.xml"), xsl => $xmldir->file("foo.xsl") );
+    my $xml = $t->process( xml => $xmlfile, xsl => $xslfile );
 
     ok($xml, "got some xml, Path::Class");
 
@@ -41,7 +44,7 @@ XML
 }
 
 {
-    my $xml = $t->process( xml => URI::file->new( $xmldir->file("foo.xml") ), xsl => $xmldir->file("foo.xsl") );
+    my $xml = $t->process( xml => URI::file->new($xmlfile), xsl => $xslfile );
 
     ok($xml, "got some xml, URI::file");
 
@@ -49,18 +52,32 @@ XML
 }
 
 {
-    my $xml = $t->process( xml => $xmldir->file("foo.xml") );
+    my $xml = $t->process( xml => $xmlfile );
 
     ok($xml, "got some xml");
 
     is_xml( $xml, $exp_xml, "processed correctly according to <?xml-stylesheet>" );
 }
 
+{
+    my $uri = URI->new("data:");
+    $uri->data(scalar $xmlfile->slurp);
+
+    throws_ok { $t->process( xml => $uri ) } qr/xml-stylesheet/, "can't get stylesheet without base";
+
+    my $xml = $t->process( xml => $uri, xsl => $xslfile );
+
+    ok($xml, "got some xml");
+
+    is_xml( $xml, $exp_xml, "processed correctly according to <?xml-stylesheet>" );
+}
+
+
 my $b = XML::LibXSLT::Easy::Batch->new;
 
 is_deeply(
     [ $b->expand( xml => $xmldir->file("*.xml") ) ],
-    [ { xml => $xmldir->file("foo.xml"), xsl => $xmldir->file("foo.xsl"), out => $xmldir->file("foo.html") } ],
+    [ { xml => $xmlfile, xsl => $xslfile, out => $outfile } ],
     "glob expansion",
 );
 

@@ -18,8 +18,9 @@ use URI::data;
 use MooseX::Types::VariantTable::Declare;
 use MooseX::Types::Moose qw(Str FileHandle Item Undef);
 use MooseX::Types::Path::Class qw(File);
-use MooseX::Types -declare => [qw(Stylesheet Document Uri FileUri DataUri)];
-use Moose::Util::TypeConstraints;
+use MooseX::Types::URI qw(Uri FileUri DataUri);
+
+use MooseX::Types -declare => [qw(Stylesheet Document)];
 
 use namespace::clean -except => [qw(meta)];
 
@@ -89,17 +90,26 @@ sub get_xml_stylesheet_pi {
 
     # from AxKit::PageKit::Content
     my @stylesheet_hrefs;
-    for my $pi_node ($doc->findnodes( 'processing-instruction()' )){
+    for my $pi_node ($doc->findnodes('processing-instruction()')) {
         my $pi_str = $pi_node->getData;
         if ( $pi_str =~ m!type="text/xsl! or $pi_str !~ /type=/ ) {
             my ($stylesheet_href) = ($pi_str =~ m!href="([^"]*)"!);
 
-            if ( $uri->isa("URI::file") ) {
-                my $file = file($uri->file);
-                return $file->parent->file($stylesheet_href);
+            my $xsl_uri = URI->new($stylesheet_href);
+
+            if ( $xsl_uri->scheme ) { # scheme means abs
+                return $xsl_uri;
             } else {
-                warn "href: $stylesheet_href, base: $uri";
-                return URI->new($stylesheet_href)->rel($uri);
+                if ( $uri->isa("URI::file") ) {
+                    my $file = file($uri->file);
+                    return $file->parent->file($stylesheet_href);
+                } elsif ( $uri->isa("URI::data") ) {
+                    croak "data URIs can't be used as rels for xml-stylesheet hrefs";
+                } else {
+                    warn "href: $stylesheet_href, base: $uri";
+                    my $rel = URI->new($stylesheet_href)->rel($uri);
+                    warn "rel: $rel";
+                }
             }
         }
     }
@@ -107,9 +117,6 @@ sub get_xml_stylesheet_pi {
     croak "No <?xml-stylesheet> processing instruction in document, please specify stylesheet explicitly";
 }
 
-class_type FileUri()    => { class => "URI::file" };
-class_type DataUri()    => { class => "URI::data" };
-class_type Uri()        => { class => "URI" };
 class_type Stylesheet() => { class => "XML::LibXSLT::StylesheetWrapper" };
 class_type Document()   => { class => "XML::LibXML::Document" };
 
@@ -152,16 +159,17 @@ variant_method parse => Str() => sub {
 
 variant_method parse => FileUri() => sub {
     my ( $self, $uri, @args ) = @_;
-    $self->parse_file( file($uri->file) );
+    $self->parse_file( file($uri->file), @args );
 };
 
 variant_method parse => DataUri() => sub {
     my ( $self, $uri, @args ) = @_;
-    $self->parse_string( $uri->data, @args ) = @_;
+    $self->parse_string( $uri->data, @args );
 };
 
 variant_method parse => Uri() => sub {
     my ( $self, $uri ) = @_;
+    warn ref $uri;
     croak "URI fetching is not yet implemented ($uri)";
 };
 
