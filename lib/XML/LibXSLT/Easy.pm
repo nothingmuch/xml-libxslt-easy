@@ -5,13 +5,20 @@ use Moose;
 
 use Carp qw(croak);
 
+use Devel::PartialDump qw(warn dump);
+
 use XML::LibXML;
 use XML::LibXSLT;
+
+use Path::Class;
+use URI;
+use URI::file;
+use URI::data;
 
 use MooseX::Types::VariantTable::Declare;
 use MooseX::Types::Moose qw(Str FileHandle Item Undef);
 use MooseX::Types::Path::Class qw(File);
-use MooseX::Types -declare => [qw(Stylesheet Document)];
+use MooseX::Types -declare => [qw(Stylesheet Document Uri FileUri DataUri)];
 use Moose::Util::TypeConstraints;
 
 use namespace::clean -except => [qw(meta)];
@@ -57,11 +64,19 @@ has xslt_options => (
 sub process {
     my ( $self, %args ) = @_;
 
-    my $doc = $self->parse($args{xml});
+    my ( $xml, $xsl, $out, $uri ) = @args{qw(xml xsl out input_uri)};
 
-    my $stylesheet = $self->stylesheet( $args{xsl} );
+    my $doc = $self->parse($xml);
 
-    $self->output( $args{out}, $stylesheet, $stylesheet->transform($doc) );
+    unless ( defined $xsl ) {
+        $uri ||= $self->get_uri($xml);
+        $xsl = $self->get_xml_stylesheet_pi( $doc, $uri, %args ) or
+            croak "Can't process <?xml-stylesheet> without knowing the URI of the input";
+    }
+
+    my $stylesheet = $self->stylesheet($xsl);
+
+    $self->output( $out, $stylesheet, $stylesheet->transform($doc) );
 }
 
 sub _build_xslt {
@@ -69,8 +84,51 @@ sub _build_xslt {
     XML::LibXSLT->new( %{ $self->xslt_options } );
 }
 
+sub get_xml_stylesheet_pi {
+    my ( $self, $doc, $uri, %args ) = @_;
+
+    # from AxKit::PageKit::Content
+    my @stylesheet_hrefs;
+    for my $pi_node ($doc->findnodes( 'processing-instruction()' )){
+        my $pi_str = $pi_node->getData;
+        if ( $pi_str =~ m!type="text/xsl! or $pi_str !~ /type=/ ) {
+            my ($stylesheet_href) = ($pi_str =~ m!href="([^"]*)"!);
+
+            if ( $uri->isa("URI::file") ) {
+                my $file = file($uri->file);
+                return $file->parent->file($stylesheet_href);
+            } else {
+                warn "href: $stylesheet_href, base: $uri";
+                return URI->new($stylesheet_href)->rel($uri);
+            }
+        }
+    }
+
+    croak "No <?xml-stylesheet> processing instruction in document, please specify stylesheet explicitly";
+}
+
+class_type FileUri()    => { class => "URI::file" };
+class_type DataUri()    => { class => "URI::data" };
+class_type Uri()        => { class => "URI" };
 class_type Stylesheet() => { class => "XML::LibXSLT::StylesheetWrapper" };
 class_type Document()   => { class => "XML::LibXML::Document" };
+
+variant_method get_uri => Uri()  => sub { $_[1] };
+variant_method get_uri => File() => sub { URI::file->new($_[1]) }; # FIXME wrong
+variant_method get_uri => Str()  => sub {
+    my ( $self, $str ) = @_;
+
+    if ( -f $str ) {
+        URI::file->new($str);
+    } else {
+        URI::data->new($str);
+    }
+};
+
+variant_method get_uri => Item() => sub {
+    my ( $self, @args ) = @_;
+    croak "Don't know how to make a URI out of " . dump(@args);
+};
 
 variant_method stylesheet => Stylesheet() => sub { $_[1] };
 variant_method stylesheet => Document() => "parse_stylesheet";
@@ -90,6 +148,21 @@ variant_method parse => Str() => sub {
     } else {
         $self->parse_string($thing, @args);
     }
+};
+
+variant_method parse => FileUri() => sub {
+    my ( $self, $uri, @args ) = @_;
+    $self->parse_file( file($uri->file) );
+};
+
+variant_method parse => DataUri() => sub {
+    my ( $self, $uri, @args ) = @_;
+    $self->parse_string( $uri->data, @args ) = @_;
+};
+
+variant_method parse => Uri() => sub {
+    my ( $self, $uri ) = @_;
+    croak "URI fetching is not yet implemented ($uri)";
 };
 
 variant_method output => FileHandle() => "output_fh";
