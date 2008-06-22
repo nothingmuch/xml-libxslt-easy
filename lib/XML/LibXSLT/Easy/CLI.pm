@@ -59,7 +59,7 @@ XML::LibXSLT::Easy::CLI -
 
 =head1 SYNOPSIS
 
-	use XML::LibXSLT::Easy::CLI;
+    use XML::LibXSLT::Easy::CLI;
 
 =head1 DESCRIPTION
 

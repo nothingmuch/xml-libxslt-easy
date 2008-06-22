@@ -203,11 +203,11 @@ __END__
 
 =head1 NAME
 
-XML:::LibXSLT::Easy - DWIM XSLT processing with L<XML::LibXSLT>
+XML::LibXSLT::Easy - DWIM XSLT processing with L<XML::LibXSLT>
 
 =head1 SYNOPSIS
 
-	use XML:::LibXSLT::Easy;
+    use XML:::LibXSLT::Easy;
 
     my $p = XML:::LibXSLT::Easy->new;
 

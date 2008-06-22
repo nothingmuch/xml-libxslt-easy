@@ -63,7 +63,7 @@ XML::LibXSLT::Easy::Batch::CLI -
 
 =head1 SYNOPSIS
 
-	use XML::LibXSLT::Easy::Batch::CLI;
+    use XML::LibXSLT::Easy::Batch::CLI;
 
 =head1 DESCRIPTION
 

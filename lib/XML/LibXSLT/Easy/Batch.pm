@@ -97,7 +97,7 @@ XML::LibXSLT::Easy::Batch -
 
 =head1 SYNOPSIS
 
-	use XML::LibXSLT::Easy::Batch;
+    use XML::LibXSLT::Easy::Batch;
 
 =head1 DESCRIPTION
 
