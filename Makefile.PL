@@ -18,6 +18,7 @@ WriteMakefile(
         'XML::LibXSLT' => 0,
         'Test::XML' => 0,,
         'namespace::clean' => '0.08',
+        'MooseX::Types::URI' => 0,
         'MooseX::Types::Path::Class' => 0,
         'Path::Class' => 0,
         'MooseX::Types::Moose' => 0,

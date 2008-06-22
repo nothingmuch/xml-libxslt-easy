@@ -3,6 +3,8 @@
 package XML::LibXSLT::Easy;
 use Moose;
 
+our $VERSION = "0.01";
+
 use Carp qw(croak);
 
 use Devel::PartialDump qw(warn dump);
