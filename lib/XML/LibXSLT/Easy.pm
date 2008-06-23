@@ -22,7 +22,7 @@ use Scope::Guard;
 use MooseX::Types::VariantTable::Declare;
 use MooseX::Types::Moose qw(Str FileHandle Item Undef);
 use MooseX::Types::Path::Class qw(File);
-use MooseX::Types::URI qw(Uri FileUri DataUri);
+use MooseX::Types::URI qw(Uri DataUri);
 
 use MooseX::Types -declare => [qw(Stylesheet Document)];
 
