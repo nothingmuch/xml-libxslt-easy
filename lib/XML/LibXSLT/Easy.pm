@@ -17,6 +17,8 @@ use URI;
 use URI::file;
 use URI::data;
 
+use Scope::Guard;
+
 use MooseX::Types::VariantTable::Declare;
 use MooseX::Types::Moose qw(Str FileHandle Item Undef);
 use MooseX::Types::Path::Class qw(File);
@@ -34,6 +36,7 @@ has xml => (
         parse_string
         parse_fh
         parse_file
+        base_uri
     )],
 );
 
@@ -69,12 +72,19 @@ sub process {
 
     my ( $xml, $xsl, $out, $uri ) = @args{qw(xml xsl out input_uri)};
 
+    $uri ||= $self->get_uri($xml);
+
     my $doc = $self->parse($xml);
 
+    if ( $uri and not is_DataUri($uri) ) {
+        my $prev_base = $self->base_uri;
+        my $sg = Scope::Guard->new(sub { $self->base_uri($prev_base) });
+        $self->base_uri($uri);
+    }
+
     unless ( defined $xsl ) {
-        $uri ||= $self->get_uri($xml);
-        $xsl = $self->get_xml_stylesheet_pi( $doc, $uri, %args ) or
-            croak "Can't process <?xml-stylesheet> without knowing the URI of the input";
+        croak "Can't process <?xml-stylesheet> without knowing the URI of the input" unless $uri;
+        $xsl = $self->get_xml_stylesheet_pi( $doc, $uri, %args );
     }
 
     my $stylesheet = $self->stylesheet($xsl);
@@ -102,15 +112,17 @@ sub get_xml_stylesheet_pi {
             if ( $xsl_uri->scheme ) { # scheme means abs
                 return $xsl_uri;
             } else {
+                if ( $uri->isa("URI::data") ) {
+                    croak "<?xml-stylesheet>'s href is relative but the base URI is in the 'data:' scheme and cannot be used as a base";
+                }
+
                 if ( $uri->isa("URI::file") ) {
                     my $file = file($uri->file);
                     return $file->parent->file($stylesheet_href);
-                } elsif ( $uri->isa("URI::data") ) {
-                    croak "data URIs can't be used as rels for xml-stylesheet hrefs";
+                } elsif ( $uri->scheme ) {
+                    return $xsl_uri->abs($uri)
                 } else {
-                    warn "href: $stylesheet_href, base: $uri";
-                    my $rel = URI->new($stylesheet_href)->rel($uri);
-                    warn "rel: $rel";
+                    croak "<?xml-stylesheet>'s href is relative buit the URI base neither absolute nor a 'file:' one";
                 }
             }
         }
@@ -159,20 +171,15 @@ variant_method parse => Str() => sub {
     }
 };
 
-variant_method parse => FileUri() => sub {
-    my ( $self, $uri, @args ) = @_;
-    $self->parse_file( file($uri->file), @args );
-};
-
 variant_method parse => DataUri() => sub {
     my ( $self, $uri, @args ) = @_;
     $self->parse_string( $uri->data, @args );
 };
 
+# includes file URIs
 variant_method parse => Uri() => sub {
-    my ( $self, $uri ) = @_;
-    warn ref $uri;
-    croak "URI fetching is not yet implemented ($uri)";
+    my ( $self, @args ) = @_;
+    $self->parse_file( @args );
 };
 
 variant_method output => FileHandle() => "output_fh";
