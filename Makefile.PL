@@ -20,7 +20,7 @@ WriteMakefile(
         # for various argument types
         'URI' => 0,
         'Path::Class' => 0,
-        'MooseX::Types::VariantTable' => 0,
+        'MooseX::MultiMethods' => 0,
 
         # types used in the multi dispatch
         'MooseX::Types' => 0,

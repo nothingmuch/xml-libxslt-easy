@@ -19,12 +19,18 @@ use URI::data;
 
 use Scope::Guard;
 
-use MooseX::Types::VariantTable::Declare;
+use MooseX::MultiMethods;
 use MooseX::Types::Moose qw(Str FileHandle Item Undef);
 use MooseX::Types::Path::Class qw(File);
-use MooseX::Types::URI qw(Uri DataUri);
+use MooseX::Types::URI qw(Uri);
 
 use MooseX::Types -declare => [qw(Stylesheet Document)];
+
+BEGIN {
+	class_type Stylesheet, { class => "XML::LibXSLT::StylesheetWrapper" };
+	class_type Document,   { class => "XML::LibXML::Document" };
+}
+
 
 use namespace::clean -except => [qw(meta)];
 
@@ -76,7 +82,7 @@ sub process {
 
     my $doc = $self->parse($xml);
 
-    if ( $uri and not is_DataUri($uri) ) {
+    if ( $uri ) {
         my $prev_base = $self->base_uri;
         my $sg = Scope::Guard->new(sub { $self->base_uri($prev_base) });
         $self->base_uri($uri);
@@ -131,64 +137,45 @@ sub get_xml_stylesheet_pi {
     croak "No <?xml-stylesheet> processing instruction in document, please specify stylesheet explicitly";
 }
 
-class_type Stylesheet() => { class => "XML::LibXSLT::StylesheetWrapper" };
-class_type Document()   => { class => "XML::LibXML::Document" };
-
-variant_method get_uri => Uri()  => sub { $_[1] };
-variant_method get_uri => File() => sub { URI::file->new($_[1]) }; # FIXME wrong
-variant_method get_uri => Str()  => sub {
-    my ( $self, $str ) = @_;
-
+multi method get_uri ( Uri $uri ) { $uri }
+multi method get_uri ( File $file ) { URI::file->new($file) }
+multi method get_uri ( Str $str ) {
     if ( -f $str ) {
         URI::file->new($str);
     } else {
         URI::data->new($str);
     }
-};
+}
 
-variant_method get_uri => Item() => sub {
-    my ( $self, @args ) = @_;
-    croak "Don't know how to make a URI out of " . dump(@args);
-};
-
-variant_method stylesheet => Stylesheet() => sub { $_[1] };
-variant_method stylesheet => Document() => "parse_stylesheet";
-variant_method stylesheet => Item() => sub {
-    my ( $self, $thing ) = @_;
+multi method stylesheet ( Stylesheet $s ) { $s }
+multi method stylesheet ( Document $doc ) { $self->parse_stylesheet($doc) }
+multi method stylesheet ( Any $thing ) {
     $self->stylesheet( $self->parse($thing) );
-};
+}
 
-variant_method parse => Document() => sub { $_[1] };
-variant_method parse => FileHandle() => "parse_fh";
-variant_method parse => File() => "parse_file";
-variant_method parse => Str() => sub {
-    my ( $self, $thing, @args ) = @_;
-    
+multi method parse ( Document $doc ) { $doc }
+multi method parse ( FileHandle $fh ) { $self->parse_fh($fh) }
+multi method parse ( File $file ) { $self->parse_file($file) }
+multi method parse ( Str $thing, @args ) {
     if ( -f $thing ) {
         $self->parse_file($thing, @args);
     } else {
         $self->parse_string($thing, @args);
     }
-};
-
-variant_method parse => DataUri() => sub {
-    my ( $self, $uri, @args ) = @_;
-    $self->parse_string( $uri->data, @args );
-};
+}
 
 # includes file URIs
-variant_method parse => Uri() => sub {
-    my ( $self, @args ) = @_;
-    $self->parse_file( @args );
-};
+multi method parse ( Uri $uri, @args ) {
+    $self->parse_file( $uri, @args );
+}
 
-variant_method output => FileHandle() => "output_fh";
-variant_method output => Str() => "output_file";
-variant_method output => File() => "output_file";
-variant_method output => Undef() => "output_string";
+multi method output ( FileHandle $fh, @args ) { $self->output_fh($fh, @args) }
+multi method output ( Str $file, @args ) { $self->output_file($file, @args) }
+multi method output ( File $file, @args ) { $self->output_File($file, @args) }
+multi method output ( Undef $x, @args ) { $self->output_string(@args) }
 
 sub output_string {
-    my ( $self, undef, $s, $r ) = @_;
+    my ( $self, $s, $r ) = @_;
     $s->output_string($r);
 }
 
