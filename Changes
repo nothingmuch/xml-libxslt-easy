@@ -1,0 +1,12 @@
+0.03
+	- switch internals to MooseX::MultiMethods
+	- remove support for data URIs due to changes in
+	  MooseX::Types::VariantTable that cause an ambiguous match (they can't
+	  technically be a subtype of the URI type, since it isn't a ClassType but
+	  a union of the class types URI and URI::WithBase)
+
+0.02
+	- improve handling of URIs
+
+0.01
+	- Initial release
