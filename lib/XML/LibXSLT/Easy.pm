@@ -201,9 +201,9 @@ XML::LibXSLT::Easy - DWIM XSLT processing with L<XML::LibXSLT>
 
 =head1 SYNOPSIS
 
-    use XML:::LibXSLT::Easy;
+    use XML::LibXSLT::Easy;
 
-    my $p = XML:::LibXSLT::Easy->new;
+    my $p = XML::LibXSLT::Easy->new;
 
     my $output = $p->process( xml => "foo.xml", xsl => "foo.xsl" );
 
